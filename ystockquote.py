@@ -464,6 +464,7 @@ def get_short_ratio(symbol):
 
 def get_historical_prices(symbol, start_date, end_date):
     """
+    deprecated
     Get historical prices for the given ticker symbol.
     Date format is 'YYYY-MM-DD'
 
