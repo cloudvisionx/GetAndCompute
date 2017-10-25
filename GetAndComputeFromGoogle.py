@@ -90,8 +90,15 @@ def main():
     # print google_stocks('AAPL')
     fx=readfx()
     csii50=readcsi50()
+    df_fx=pd.DataFrame(fx['data'])
+    df_csii50=pd.DataFrame(csii50['data'])
+    df_csii50['tradedate']=df_csii50['tradedate'].map(str_csii50_to_date)
+    df_fx['date'] = df_fx['date'].map(str_fx_to_date)
+
     df = initilize_data()
+    get_fx(df, df_fx)
     get_price(df)
+
     print df
     fulfill_price(df)
     print df
@@ -100,12 +107,23 @@ def main():
 def datetime_to_date(dt):
     return dt.date()
 
+def str_csii50_to_date(datetimestr):
+    return datetime.strptime(datetimestr, "%Y-%m-%d %H:%M:%S").date()
+
+
+def str_fx_to_date(datetimestr):
+    return datetime.strptime(datetimestr, "%b %d, %Y").date()
+
+
 
 def initilize_data():
     datetimes = pd.date_range('2017-09-11', '2017-10-20')
     dates = map(datetime_to_date, datetimes)
+    columns=['csii50','fx','csii50/fx']
+    columns.extend(symbol_list_v2)
+
     df = pd.DataFrame(index=dates,
-                      columns=symbol_list_v2)
+                      columns=columns)
     # df['symbol']=symbol_list
     # df['symbol'] = symbol_list
     return df
@@ -116,12 +134,21 @@ def get_price(df):
         time.sleep(0.1)
         price = google_stocks_close_v2(symbol, 30)
         print price
+        dates = price.loc[:, 'date']
         for index, row in df.iterrows():
-            dates = price.loc[:, 'date']
             if index in dates.values:  # shit should be values
                 record = price.loc[dates == index, :]
                 # print record
                 df.at[index, symbol] = record.iat[0, 1]
+
+
+def get_fx(df,df_fx):
+    fx_date = df_fx.loc[:,'date']
+    for index, row in df.iterrows():
+        if index in fx_date.values:  # shit should be values
+            record = df_fx.loc[:,fx_date==index]
+            # print record
+            df.at[index, 'fx'] = record.iat[0, 1]
 
 
 def fulfill_price(df):
