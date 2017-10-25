@@ -87,20 +87,31 @@ symbol_list_v2 = ['0400',
 
 
 def main():
-    # print google_stocks('AAPL')
-    fx=readfx()
-    csii50=readcsi50()
-    df_fx=pd.DataFrame(fx['data'])
-    df_csii50=pd.DataFrame(csii50['data'])
-    df_csii50['tradedate']=df_csii50['tradedate'].map(str_csii50_to_date)
+    # prepare_dta()
+    df=pd.read_csv('ret.csv')
+    print df
+
+
+def prepare_dta():
+    fx = readfx()
+    csii50 = readcsi50()
+    df_fx = pd.DataFrame(fx['data'])
+    df_csii50 = pd.DataFrame(csii50['data'])
+    df_csii50['tradedate'] = df_csii50['tradedate'].map(str_csii50_to_date)
     df_fx['date'] = df_fx['date'].map(str_fx_to_date)
 
     df = initilize_data()
     get_fx(df, df_fx)
+    get_csii50(df, df_csii50)
+    df['csii50'] = df['csii50'].map(float)
+    df['fx'] = df['fx'].map(float)
+    # a=df.iloc[0,0]
+    # df['csii50/fx'] = df.apply(lambda row: row['csii50'] / row['fx'], axis=1)
+    df['csii50/fx'] = df['csii50'] / df['fx']
     get_price(df)
 
-    print df
     fulfill_price(df)
+    df.to_csv('ret.csv')
     print df
 
 
@@ -117,7 +128,9 @@ def str_fx_to_date(datetimestr):
 
 
 def initilize_data():
-    datetimes = pd.date_range('2017-09-11', '2017-10-20')
+    datetimes_1 = pd.date_range('2017-09-11', '2017-09-29')
+    datetimes_2 = pd.date_range('2017-10-05', '2017-10-20')
+    datetimes=datetimes_1.union(datetimes_2)
     dates = map(datetime_to_date, datetimes)
     columns=['csii50','fx','csii50/fx']
     columns.extend(symbol_list_v2)
@@ -146,9 +159,17 @@ def get_fx(df,df_fx):
     fx_date = df_fx.loc[:,'date']
     for index, row in df.iterrows():
         if index in fx_date.values:  # shit should be values
-            record = df_fx.loc[:,fx_date==index]
+            record = df_fx.loc[fx_date==index,:]
             # print record
-            df.at[index, 'fx'] = record.iat[0, 1]
+            df.at[index, 'fx'] = record.iat[0, 0]
+
+def get_csii50(df,df_csii50):
+    csii50_date = df_csii50.loc[:,'tradedate']
+    for index, row in df.iterrows():
+        if index in csii50_date.values:  # shit should be values
+            record = df_csii50.loc[csii50_date==index,:]
+            # print record
+            df.at[index, 'csii50'] = record.iat[0, 2]
 
 
 def fulfill_price(df):
