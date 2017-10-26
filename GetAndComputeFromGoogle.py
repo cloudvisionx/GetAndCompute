@@ -87,9 +87,31 @@ symbol_list_v2 = ['0400',
 
 
 def main():
-    # prepare_dta()
-    df=pd.read_csv('ret.csv')
-    print df
+    # df=prepare_dta()
+    df=pd.read_csv('ret_dropna.csv')
+    # print df
+    solution=compute_solution(df)
+
+
+
+
+def compute_solution(df):
+    ndarray_price=df.iloc[:,4:].as_matrix(columns=None)
+    matrix_price=np.matrix(ndarray_price)
+    matrix_I=matrix_price.I
+    a=np.asarray(matrix_I)
+    ret=np.dot(matrix_price, matrix_price.I)
+    b=np.asarray(ret)
+    print matrix_I
+    ndarray_index = df.iloc[:, 3].as_matrix(columns=None)
+    matrix_index=np.matrix(ndarray_index).T
+    solution_matrix=np.dot(matrix_I,matrix_index)
+    solution_ndarrdy=np.asarray(solution_matrix)
+    print solution_ndarrdy
+    # pass
+
+
+
 
 
 def prepare_dta():
@@ -105,14 +127,17 @@ def prepare_dta():
     get_csii50(df, df_csii50)
     df['csii50'] = df['csii50'].map(float)
     df['fx'] = df['fx'].map(float)
+
     # a=df.iloc[0,0]
     # df['csii50/fx'] = df.apply(lambda row: row['csii50'] / row['fx'], axis=1)
     df['csii50/fx'] = df['csii50'] / df['fx']
-    get_price(df)
+    df_dopna = df.dropna(axis=0, how='all')
+    get_price(df_dopna)
 
-    fulfill_price(df)
-    df.to_csv('ret.csv')
-    print df
+    fulfill_price(df_dopna)
+    df_dopna.to_csv('ret_dropna.csv')
+    return df_dopna
+
 
 
 def datetime_to_date(dt):
@@ -128,7 +153,7 @@ def str_fx_to_date(datetimestr):
 
 
 def initilize_data():
-    datetimes_1 = pd.date_range('2017-09-11', '2017-09-29')
+    datetimes_1 = pd.date_range('2017-08-21', '2017-09-29')
     datetimes_2 = pd.date_range('2017-10-05', '2017-10-20')
     datetimes=datetimes_1.union(datetimes_2)
     dates = map(datetime_to_date, datetimes)
@@ -145,7 +170,7 @@ def initilize_data():
 def get_price(df):
     for symbol in symbol_list_v2:
         time.sleep(0.1)
-        price = google_stocks_close_v2(symbol, 30)
+        price = google_stocks_close_v2(symbol, 70)
         print price
         dates = price.loc[:, 'date']
         for index, row in df.iterrows():
@@ -204,7 +229,7 @@ def google_stocks(symbol, startdate=(1, 1, 2005), enddate=None):
 
 def google_stocks_close_v2(symbol, period):
     stock_url = "http://finance.google.com.hk/finance/getprices?q=" + symbol + \
-                "&i=86400&p=30d&f=d,c"
+                "&i=86400&p="+str(period)+"d&f=d,c"
 
     raw_response = requests.get(stock_url).content
     str_pos_TIMEZONE_OFFSET = raw_response.index('TIMEZONE_OFFSET=')
